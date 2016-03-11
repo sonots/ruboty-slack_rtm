@@ -188,17 +188,26 @@ module Ruboty
 
       def resolve_send_mention(text)
         text = text.to_s
-        text.gsub!(/@(?<mention>[0-9a-z._-]+)/) do |_|
-          mention = Regexp.last_match[:mention]
-          msg = "@#{mention}"
+        begin
+          text.gsub!(/@(?<mention>[0-9a-z._-]+)/) do |_|
+            mention = Regexp.last_match[:mention]
+            msg = "@#{mention}"
 
-          @user_info_caches.each_pair do |id, user|
-            if user['name'].downcase == mention.downcase
-              msg = "<@#{id}>"
+            @user_info_caches.each_pair do |id, user|
+              if user['name'].downcase == mention.downcase
+                msg = "<@#{id}>"
+              end
             end
-          end
 
-          msg
+            msg
+          end
+        rescue ArgumentError => e
+          if e.message =~ /invalid byte sequence/
+            text.scrub!('?')
+            retry
+          else
+            raise e
+          end
         end
 
         text.gsub!(/@(?<special>(?:everyone|group|channel|here))/) do |_|
